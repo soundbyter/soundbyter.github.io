@@ -474,6 +474,12 @@
     .form-note.success { color: var(--green); }
     .form-note.error   { color: #F87171; }
 
+    .blog-loading {
+      font-family: var(--font-mono); font-size: 0.85rem;
+      color: var(--text-muted); padding: 1rem 0;
+    }
+    .blog-loading::after { content: '...'; animation: blink 1s step-end infinite; }
+
     /* FOOTER */
     footer { border-top: 1px solid var(--border); padding: 2.5rem 0; position: relative; z-index: 1; }
     .footer-inner {
@@ -537,7 +543,7 @@
         </a>
         <ul class="nav-links" role="list">
           <li><a href="#tools">Tools</a></li>
-          <li><a href="#blog">Blog</a></li>
+          <li><a href="blog.html">Blog</a></li>
           <li><a href="#about">About</a></li>
           <li><a href="#accessibility">Accessibility</a></li>
           <li><a href="https://buymeacoffee.com/soundbyter" aria-hidden="true" tabindex="-1">☕ Support</a></li>
@@ -646,25 +652,12 @@
           <p class="section-label" aria-hidden="true">writing</p>
           <h2 id="blog-heading">Devlog</h2>
         </div>
-        <nav aria-label="Blog posts">
-          <ul style="list-style:none;padding:0;margin:0;">
-            <li><a href="#" class="blog-item">
-              <span class="blog-date">2026-03-06</span>
-              <span class="blog-title">Building Copy Dynamic Link — from idea to Chrome Web Store</span>
-              <span class="blog-arrow" aria-hidden="true">→</span>
-            </a></li>
-            <li><a href="#" class="blog-item">
-              <span class="blog-date">2026-02-18</span>
-              <span class="blog-title">Why I bake WCAG 2.2 AA into every project from day one</span>
-              <span class="blog-arrow" aria-hidden="true">→</span>
-            </a></li>
-            <li><a href="#" class="blog-item">
-              <span class="blog-date">2026-01-30</span>
-              <span class="blog-title">Light mode is bad, and here's the data to prove it</span>
-              <span class="blog-arrow" aria-hidden="true">→</span>
-            </a></li>
-          </ul>
-        </nav>
+        <div id="blog-preview" role="list" aria-live="polite" aria-label="Latest blog posts">
+          <p class="blog-loading" aria-label="Loading posts">Loading</p>
+        </div>
+        <div style="margin-top:2rem;">
+          <a href="blog.html" class="btn btn-outline" aria-label="View all posts on the Devlog">All posts &rarr;</a>
+        </div>
       </div>
     </section>
 
@@ -788,7 +781,7 @@
         <a href="#hero" class="footer-logo" aria-label="SoundByter — back to top of page">SoundByter_</a>
         <ul class="footer-links" role="list">
           <li><a href="#tools">Tools</a></li>
-          <li><a href="#blog">Blog</a></li>
+          <li><a href="blog.html">Blog</a></li>
           <li><a href="#about">About</a></li>
           <li><a href="https://buymeacoffee.com/soundbyter" aria-hidden="true" tabindex="-1">☕ Support</a></li>
         </ul>
@@ -936,6 +929,66 @@
       });
     }
     document.getElementById('footer-year').textContent = new Date().getFullYear();
+
+    // ── Homepage blog preview (latest 3 posts) ──────────────────
+    async function loadBlogPreview() {
+      const el = document.getElementById('blog-preview');
+      if (!el) return;
+      try {
+        const res = await fetch('blogs/manifest.txt');
+        if (!res.ok) throw new Error('No manifest');
+        const manifest = await res.text();
+        const files = manifest.split('\n').map(f => f.trim()).filter(Boolean);
+        if (files.length === 0) { el.innerHTML = ''; return; }
+
+        const posts = await Promise.all(files.map(async filename => {
+          try {
+            const r = await fetch(`blogs/${filename}`);
+            if (!r.ok) return null;
+            const reader = r.body.getReader();
+            const { value } = await reader.read();
+            reader.cancel();
+            const chunk = new TextDecoder().decode(value).slice(0, 800);
+            const match = chunk.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+            if (!match) return null;
+            const meta = {};
+            match[1].split('\n').forEach(line => {
+              const c = line.indexOf(':');
+              if (c === -1) return;
+              meta[line.slice(0,c).trim()] = line.slice(c+1).trim().replace(/^["']|["']$/g,'');
+            });
+            return { filename, ...meta };
+          } catch { return null; }
+        }));
+
+        const valid = posts
+          .filter(p => p && p.title)
+          .sort((a,b) => new Date(b.date) - new Date(a.date))
+          .slice(0, 3);
+
+        if (valid.length === 0) { el.innerHTML = ''; return; }
+
+        el.innerHTML = valid.map(post => {
+          const date = post.date
+            ? new Date(post.date).toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' })
+            : '';
+          return `
+            <article role="listitem">
+              <a href="post.html?post=${encodeURIComponent(post.filename)}"
+                 class="blog-item"
+                 aria-label="Read: ${post.title.replace(/"/g, '&quot;')}">
+                <span class="blog-date">${date}</span>
+                <span class="blog-title">${post.title.replace(/</g,'&lt;')}</span>
+                <span class="blog-arrow" aria-hidden="true">→</span>
+              </a>
+            </article>`;
+        }).join('');
+      } catch {
+        el.innerHTML = '';
+      }
+    }
+
+    loadBlogPreview();
   </script>
 
 </body>
