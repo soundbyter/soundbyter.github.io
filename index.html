@@ -552,7 +552,7 @@
     </div>
   </nav>
 
-  <main id="main-content">
+  <main id="main-content" tabindex="-1">
 
     <!-- HERO -->
     <section id="hero" aria-labelledby="hero-heading">
@@ -989,6 +989,14 @@
     }
 
     loadBlogPreview();
+  
+    // ── Skip link — move focus to main, not just scroll ─────────
+    document.querySelector('.skip-link').addEventListener('click', function(e) {
+      e.preventDefault();
+      const main = document.getElementById('main-content');
+      main.focus();
+      main.scrollIntoView();
+    });
   </script>
 
 </body>

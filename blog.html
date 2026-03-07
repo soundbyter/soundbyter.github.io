@@ -228,7 +228,7 @@
     </div>
   </nav>
 
-  <main id="main-content">
+  <main id="main-content" tabindex="-1">
     <div class="container">
 
       <header class="page-header">
@@ -380,6 +380,14 @@
     }
 
     loadPosts();
+  
+    // ── Skip link — move focus to main, not just scroll ─────────
+    document.querySelector('.skip-link').addEventListener('click', function(e) {
+      e.preventDefault();
+      const main = document.getElementById('main-content');
+      main.focus();
+      main.scrollIntoView();
+    });
   </script>
 
 </body>

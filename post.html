@@ -20,7 +20,15 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet" />
   <!-- marked.js for markdown parsing -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js">
+    // ── Skip link — move focus to main, not just scroll ─────────
+    document.querySelector('.skip-link').addEventListener('click', function(e) {
+      e.preventDefault();
+      const main = document.getElementById('main-content');
+      main.focus();
+      main.scrollIntoView();
+    });
+  </script>
 
   <style>
     :root {
@@ -278,7 +286,7 @@
     </div>
   </nav>
 
-  <main id="main-content">
+  <main id="main-content" tabindex="-1">
     <div id="post-content">
       <div class="container">
         <div class="loading" aria-label="Loading post">Loading post</div>
