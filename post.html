@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Loading... — SoundByter</title>
+  <meta name="description" content="" />
+
+  <style>
+    .skip-link {
+      position: absolute; top: -100px; left: 1rem;
+      background: #ffb300; color: #000; padding: 0.5rem 1rem;
+      font-weight: 700; border-radius: 0 0 6px 6px; z-index: 9999;
+      font-family: 'Courier New', monospace; transition: top 0.2s; text-decoration: none;
+    }
+    .skip-link:focus { top: 0; }
+  </style>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet" />
+  <!-- marked.js for markdown parsing -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+
+  <style>
+    :root {
+      --bg:           #0D0D00;
+      --bg-card:      #141400;
+      --bg-hover:     #1c1c00;
+      --amber:        #FFB300;
+      --amber-dim:    #CC8F00;
+      --amber-glow:   rgba(255,179,0,0.12);
+      --text:         #F2F2E8;
+      --text-dim:     #A89060;
+      --text-muted:   #BF9A58;
+      --border:       #2a2800;
+      --border-lit:   #3d3800;
+      --green:        #4ADE80;
+      --red:          #F87171;
+      --font-mono:    'Share Tech Mono', 'Courier New', monospace;
+      --font-display: 'VT323', monospace;
+      --font-body:    'Nunito', sans-serif;
+      --glow:         0 0 12px rgba(255,179,0,0.3), 0 0 30px rgba(255,179,0,0.1);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: var(--font-body); font-size: 1rem;
+      line-height: 1.7; min-height: 100vh; overflow-x: hidden;
+    }
+
+    body::before {
+      content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 9998;
+      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+    }
+    body::after {
+      content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background-image: radial-gradient(circle, rgba(255,179,0,0.06) 1px, transparent 1px);
+      background-size: 28px 28px;
+    }
+
+    :focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; border-radius: 2px; }
+
+    a { color: var(--amber); text-decoration: underline; text-underline-offset: 3px; }
+    a:hover { color: var(--text); }
+
+    .container { max-width: 760px; margin: 0 auto; padding: 0 1.5rem; position: relative; z-index: 1; }
+    .container-wide { max-width: 900px; margin: 0 auto; padding: 0 1.5rem; position: relative; z-index: 1; }
+
+    /* NAV */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(13,13,0,0.92); backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border); padding: 0.9rem 0;
+    }
+    .nav-inner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
+    .nav-logo {
+      font-family: var(--font-display); font-size: 1.8rem;
+      color: var(--amber); text-decoration: none; letter-spacing: 0.05em;
+      text-shadow: var(--glow);
+    }
+    .nav-links { display: flex; gap: 0.25rem; list-style: none; flex-wrap: wrap; }
+    .nav-links a {
+      font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-dim);
+      text-decoration: none; padding: 0.35rem 0.75rem; border-radius: 3px;
+      transition: color 0.15s, background 0.15s; letter-spacing: 0.05em;
+    }
+    .nav-links a:hover, .nav-links a:focus-visible { color: var(--amber); background: var(--amber-glow); }
+
+    /* POST HEADER */
+    .post-header { padding: 4rem 0 2.5rem; }
+    .post-back {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      font-family: var(--font-mono); font-size: 0.78rem;
+      color: var(--text-muted); text-decoration: none;
+      letter-spacing: 0.05em; margin-bottom: 2rem;
+      transition: color 0.15s;
+    }
+    .post-back:hover { color: var(--amber); }
+    .post-back::before { content: '←'; }
+
+    .post-meta {
+      display: flex; align-items: center; gap: 1rem;
+      flex-wrap: wrap; margin-bottom: 0.75rem;
+    }
+    .post-date {
+      font-family: var(--font-mono); font-size: 0.78rem;
+      color: var(--text-muted); letter-spacing: 0.05em;
+    }
+    .post-tag {
+      font-family: var(--font-mono); font-size: 0.7rem;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--amber); background: rgba(255,179,0,0.1);
+      border: 1px solid rgba(255,179,0,0.2);
+      padding: 1px 7px; border-radius: 2px;
+    }
+    .post-readtime {
+      font-family: var(--font-mono); font-size: 0.78rem; color: var(--text-muted);
+    }
+
+    .post-title {
+      font-family: var(--font-display); font-size: clamp(2.2rem, 6vw, 4rem);
+      color: var(--amber); letter-spacing: 0.03em; line-height: 1.1;
+      text-shadow: var(--glow); margin-bottom: 0.75rem;
+    }
+    .post-excerpt {
+      font-size: 1.05rem; color: var(--text-dim);
+      max-width: 60ch; line-height: 1.6;
+      border-left: 3px solid var(--amber-dim);
+      padding-left: 1rem; margin-top: 1rem;
+    }
+
+    /* DIVIDER */
+    .post-divider {
+      border: none; border-top: 1px solid var(--border);
+      margin: 2.5rem 0;
+    }
+
+    /* POST BODY — markdown rendered content */
+    .post-body { padding-bottom: 4rem; }
+
+    .post-body h2 {
+      font-family: var(--font-display); font-size: 2rem;
+      color: var(--amber); letter-spacing: 0.04em;
+      margin: 2.5rem 0 0.75rem;
+    }
+    .post-body h3 {
+      font-family: var(--font-display); font-size: 1.6rem;
+      color: var(--amber); letter-spacing: 0.03em;
+      margin: 2rem 0 0.5rem;
+    }
+    .post-body h4 {
+      font-family: var(--font-mono); font-size: 0.9rem;
+      color: var(--text-muted); text-transform: uppercase;
+      letter-spacing: 0.1em; margin: 1.5rem 0 0.5rem;
+    }
+    .post-body p { color: var(--text-dim); margin-bottom: 1.25rem; max-width: 68ch; }
+    .post-body strong { color: var(--amber); font-weight: 700; }
+    .post-body em { color: var(--text); font-style: italic; }
+
+    .post-body a { color: var(--amber); }
+    .post-body a:hover { color: var(--text); }
+
+    .post-body ul, .post-body ol {
+      padding-left: 1.5rem; margin-bottom: 1.25rem; color: var(--text-dim);
+    }
+    .post-body li { margin-bottom: 0.4rem; max-width: 65ch; }
+
+    .post-body blockquote {
+      border-left: 3px solid var(--amber-dim);
+      padding: 0.5rem 1rem; margin: 1.5rem 0;
+      background: var(--bg-card); border-radius: 0 4px 4px 0;
+    }
+    .post-body blockquote p { color: var(--text-dim); margin: 0; }
+
+    .post-body code {
+      font-family: var(--font-mono); font-size: 0.85em;
+      background: var(--bg-card); color: var(--amber);
+      padding: 0.15em 0.4em; border-radius: 3px;
+      border: 1px solid var(--border-lit);
+    }
+    .post-body pre {
+      background: #080800; border: 1px solid var(--border-lit);
+      border-radius: 4px; padding: 1.25rem; overflow-x: auto;
+      margin-bottom: 1.5rem;
+    }
+    .post-body pre code {
+      background: none; border: none; padding: 0;
+      color: var(--text); font-size: 0.85rem; line-height: 1.7;
+    }
+
+    .post-body hr {
+      border: none; border-top: 1px solid var(--border); margin: 2.5rem 0;
+    }
+
+    .post-body img {
+      max-width: 100%; border-radius: 4px;
+      border: 1px solid var(--border-lit); margin: 1.5rem 0;
+    }
+
+    .post-body table {
+      width: 100%; border-collapse: collapse; margin-bottom: 1.5rem;
+      font-size: 0.9rem;
+    }
+    .post-body th {
+      font-family: var(--font-mono); font-size: 0.75rem;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--amber); border-bottom: 1px solid var(--border-lit);
+      padding: 0.5rem 0.75rem; text-align: left;
+    }
+    .post-body td {
+      color: var(--text-dim); padding: 0.5rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* POST FOOTER NAV */
+    .post-nav {
+      display: flex; justify-content: space-between;
+      align-items: center; flex-wrap: wrap; gap: 1rem;
+      padding: 2rem 0; border-top: 1px solid var(--border);
+      margin-top: 2rem;
+    }
+    .post-nav a {
+      font-family: var(--font-mono); font-size: 0.8rem;
+      color: var(--text-muted); text-decoration: none;
+      display: flex; align-items: center; gap: 0.4rem;
+      transition: color 0.15s;
+    }
+    .post-nav a:hover { color: var(--amber); }
+
+    /* ERROR STATE */
+    .error-state {
+      text-align: center; padding: 5rem 0;
+      font-family: var(--font-mono); color: var(--text-muted);
+    }
+    .error-state h2 { color: var(--red); margin-bottom: 1rem; }
+
+    /* LOADING */
+    .loading {
+      text-align: center; padding: 4rem 0;
+      font-family: var(--font-mono); font-size: 0.85rem; color: var(--text-muted);
+    }
+    .loading::after { content: '...'; animation: blink 1s step-end infinite; }
+
+    /* FOOTER */
+    footer { border-top: 1px solid var(--border); padding: 2rem 0; position: relative; z-index: 1; }
+    .footer-inner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
+    .footer-logo { font-family: var(--font-display); font-size: 1.4rem; color: var(--text-muted); text-decoration: none; }
+    .footer-copy { font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-muted); width: 100%; text-align: center; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+
+    @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0; } }
+    @keyframes fadeSlideUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <nav aria-label="Main navigation">
+    <div class="container-wide">
+      <div class="nav-inner">
+        <a href="index.html" class="nav-logo" aria-label="SoundByter — home">SoundByter</a>
+        <ul class="nav-links" role="list">
+          <li><a href="index.html#tools">Tools</a></li>
+          <li><a href="blog.html">Blog</a></li>
+          <li><a href="index.html#about">About</a></li>
+          <li><a href="index.html#accessibility">Accessibility</a></li>
+          <li><a href="https://buymeacoffee.com/soundbyter" aria-hidden="true" tabindex="-1">☕ Support</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <main id="main-content">
+    <div id="post-content">
+      <div class="container">
+        <div class="loading" aria-label="Loading post">Loading post</div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container-wide">
+      <div class="footer-inner">
+        <a href="index.html" class="footer-logo" aria-label="SoundByter — back to home">SoundByter_</a>
+      </div>
+      <p class="footer-copy">&copy; <span id="footer-year"></span> SoundByter — Built with accessibility in mind &amp; dark mode always on.</p>
+    </div>
+  </footer>
+
+  <script>
+    document.getElementById('footer-year').textContent = new Date().getFullYear();
+
+    // ── Frontmatter parser ───────────────────────────────────────
+    function parseFrontmatter(raw) {
+      const match = raw.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+      if (!match) return { meta: {}, body: raw };
+      const meta = {};
+      match[1].split('\n').forEach(line => {
+        const colon = line.indexOf(':');
+        if (colon === -1) return;
+        const key = line.slice(0, colon).trim();
+        const val = line.slice(colon + 1).trim().replace(/^["']|["']$/g, '');
+        meta[key] = val;
+      });
+      return { meta, body: raw.slice(match[0].length).trim() };
+    }
+
+    // ── Load and render post ─────────────────────────────────────
+    async function loadPost() {
+      const params   = new URLSearchParams(window.location.search);
+      const filename = params.get('post');
+      const container = document.getElementById('post-content');
+
+      if (!filename || !/^[\w\-]+\.md$/.test(filename)) {
+        renderError(container, 'Post not found', 'That post doesn\'t seem to exist.');
+        return;
+      }
+
+      try {
+        const res = await fetch(`blogs/${filename}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const raw = await res.text();
+        const { meta, body } = parseFrontmatter(raw);
+
+        if (!meta.title) throw new Error('Post has no title in frontmatter');
+
+        // Update page title and meta description
+        document.title = `${meta.title} — SoundByter`;
+        if (meta.excerpt) {
+          document.querySelector('meta[name="description"]').setAttribute('content', meta.excerpt);
+        }
+
+        // Format date
+        const dateStr = meta.date
+          ? new Date(meta.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+          : '';
+
+        // Configure marked — safe defaults
+        marked.setOptions({
+          gfm: true,
+          breaks: false,
+          pedantic: false,
+        });
+
+        // Render markdown body — h1 is reserved for post title, so ## in md = h2 on page
+        const renderedBody = marked.parse(body);
+
+        container.innerHTML = `
+          <div class="container">
+            <header class="post-header">
+              <a href="blog.html" class="post-back" aria-label="Back to all blog posts">Back to Devlog</a>
+              <div class="post-meta">
+                ${dateStr ? `<span class="post-date">${dateStr}</span>` : ''}
+                ${meta.tag  ? `<span class="post-tag">${escHtml(meta.tag)}</span>` : ''}
+                ${meta.readtime ? `<span class="post-readtime">${escHtml(meta.readtime)} min read</span>` : ''}
+              </div>
+              <h1 class="post-title">${escHtml(meta.title)}</h1>
+              ${meta.excerpt ? `<p class="post-excerpt">${escHtml(meta.excerpt)}</p>` : ''}
+            </header>
+            <hr class="post-divider" />
+          </div>
+          <div class="container">
+            <article class="post-body" aria-label="${escHtml(meta.title)}">
+              ${renderedBody}
+            </article>
+            <nav class="post-nav" aria-label="Post navigation">
+              <a href="blog.html" aria-label="Back to all posts">← All posts</a>
+              <a href="#main-content" aria-label="Back to top of post">↑ Top</a>
+            </nav>
+          </div>`;
+
+      } catch (err) {
+        renderError(container, 'Could not load post', 'The post may have moved or been removed.');
+        console.error(err);
+      }
+    }
+
+    function renderError(container, heading, message) {
+      document.title = 'Post not found — SoundByter';
+      container.innerHTML = `
+        <div class="container">
+          <div class="error-state" role="alert">
+            <h2>${escHtml(heading)}</h2>
+            <p>${escHtml(message)}</p>
+            <p style="margin-top:1.5rem;">
+              <a href="blog.html">← Back to Devlog</a>
+            </p>
+          </div>
+        </div>`;
+    }
+
+    function escHtml(str) {
+      return String(str)
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    loadPost();
+  </script>
+
+</body>
+</html>

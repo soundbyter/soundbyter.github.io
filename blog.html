@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Devlog — SoundByter</title>
+  <meta name="description" content="Writing about accessibility, tooling, and building things properly." />
+
+  <style>
+    .skip-link {
+      position: absolute; top: -100px; left: 1rem;
+      background: #ffb300; color: #000; padding: 0.5rem 1rem;
+      font-weight: 700; border-radius: 0 0 6px 6px; z-index: 9999;
+      font-family: 'Courier New', monospace; transition: top 0.2s; text-decoration: none;
+    }
+    .skip-link:focus { top: 0; }
+  </style>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    /*
+      CONTRAST RATIOS — all verified WCAG 2.2 AA/AAA
+      --amber    #FFB300 on #141400 = 10.36:1 ✓ AAA
+      --text     #F2F2E8 on #141400 = 16.50:1 ✓ AAA
+      --text-dim #A89060 on #141400 =  6.04:1 ✓ AA
+      --text-muted #BF9A58 on #141400 = 7.06:1 ✓ AAA
+    */
+    :root {
+      --bg:           #0D0D00;
+      --bg-card:      #141400;
+      --bg-hover:     #1c1c00;
+      --amber:        #FFB300;
+      --amber-dim:    #CC8F00;
+      --amber-glow:   rgba(255,179,0,0.12);
+      --text:         #F2F2E8;
+      --text-dim:     #A89060;
+      --text-muted:   #BF9A58;
+      --border:       #2a2800;
+      --border-lit:   #3d3800;
+      --green:        #4ADE80;
+      --font-mono:    'Share Tech Mono', 'Courier New', monospace;
+      --font-display: 'VT323', monospace;
+      --font-body:    'Nunito', sans-serif;
+      --glow:         0 0 12px rgba(255,179,0,0.3), 0 0 30px rgba(255,179,0,0.1);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: var(--font-body); font-size: 1rem;
+      line-height: 1.7; min-height: 100vh; overflow-x: hidden;
+    }
+
+    body::before {
+      content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 9998;
+      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+    }
+    body::after {
+      content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background-image: radial-gradient(circle, rgba(255,179,0,0.06) 1px, transparent 1px);
+      background-size: 28px 28px;
+    }
+
+    :focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; border-radius: 2px; }
+
+    h1, h2, h3 { font-family: var(--font-display); color: var(--amber); letter-spacing: 0.04em; line-height: 1.1; }
+    h1 { font-size: clamp(2.5rem, 6vw, 4.5rem); }
+    h2 { font-size: clamp(1.6rem, 3vw, 2.4rem); }
+
+    a { color: var(--amber); text-decoration: underline; text-underline-offset: 3px; }
+    a:hover { color: var(--text); }
+
+    .container { max-width: 900px; margin: 0 auto; padding: 0 1.5rem; position: relative; z-index: 1; }
+
+    /* NAV */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(13,13,0,0.92); backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border); padding: 0.9rem 0;
+    }
+    .nav-inner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
+    .nav-logo {
+      font-family: var(--font-display); font-size: 1.8rem;
+      color: var(--amber); text-decoration: none; letter-spacing: 0.05em;
+      text-shadow: var(--glow);
+    }
+    .nav-links { display: flex; gap: 0.25rem; list-style: none; flex-wrap: wrap; }
+    .nav-links a {
+      font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-dim);
+      text-decoration: none; padding: 0.35rem 0.75rem; border-radius: 3px;
+      transition: color 0.15s, background 0.15s; letter-spacing: 0.05em;
+    }
+    .nav-links a:hover, .nav-links a:focus-visible { color: var(--amber); background: var(--amber-glow); }
+    .nav-links a[aria-current="page"] { color: var(--amber); }
+
+    /* PAGE HEADER */
+    .page-header { padding: 4rem 0 3rem; }
+    .page-pre {
+      font-family: var(--font-mono); font-size: 0.8rem;
+      color: var(--text-muted); margin-bottom: 0.5rem;
+      display: flex; align-items: center; gap: 0.4rem;
+    }
+    .page-pre .prompt { color: var(--green); }
+    .page-header p.intro {
+      color: var(--text-dim); font-size: 1rem;
+      max-width: 55ch; margin-top: 0.75rem;
+    }
+
+    /* FILTER BAR */
+    .filter-bar {
+      display: flex; gap: 0.5rem; flex-wrap: wrap;
+      margin-bottom: 2.5rem;
+    }
+    .filter-btn {
+      font-family: var(--font-mono); font-size: 0.75rem;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      padding: 0.35rem 0.9rem; border-radius: 3px;
+      border: 1px solid var(--border-lit);
+      background: transparent; color: var(--text-muted);
+      cursor: pointer; transition: all 0.15s;
+    }
+    .filter-btn:hover, .filter-btn:focus-visible { color: var(--amber); border-color: var(--amber-dim); background: var(--amber-glow); }
+    .filter-btn.active { color: #000; background: var(--amber); border-color: var(--amber); }
+
+    /* POST LIST */
+    .post-list { display: flex; flex-direction: column; gap: 1.25rem; }
+
+    .post-card {
+      display: block; background: var(--bg-card);
+      border: 1px solid var(--border); border-radius: 4px;
+      padding: 1.5rem; text-decoration: none; color: inherit;
+      transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+    }
+    .post-card:hover, .post-card:focus-visible {
+      border-color: var(--amber-dim); background: var(--bg-hover);
+      box-shadow: inset 0 0 30px rgba(255,179,0,0.04), 0 0 0 1px var(--amber-dim);
+      text-decoration: none;
+    }
+
+    .post-card-meta {
+      display: flex; align-items: center; gap: 1rem;
+      margin-bottom: 0.6rem; flex-wrap: wrap;
+    }
+    .post-date {
+      font-family: var(--font-mono); font-size: 0.75rem;
+      color: var(--text-muted); letter-spacing: 0.05em;
+    }
+    .post-tag {
+      font-family: var(--font-mono); font-size: 0.7rem;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--amber); background: rgba(255,179,0,0.1);
+      border: 1px solid rgba(255,179,0,0.2);
+      padding: 1px 7px; border-radius: 2px;
+    }
+
+    .post-title {
+      font-family: var(--font-display); font-size: 1.8rem;
+      color: var(--amber); letter-spacing: 0.03em;
+      margin-bottom: 0.5rem; line-height: 1.15;
+    }
+    .post-card:hover .post-title { text-shadow: var(--glow); }
+
+    .post-excerpt {
+      font-size: 0.92rem; color: var(--text-dim);
+      line-height: 1.6; max-width: 70ch;
+      margin-bottom: 1rem;
+    }
+
+    .post-card-footer {
+      font-family: var(--font-mono); font-size: 0.75rem;
+      color: var(--text-muted); display: flex;
+      align-items: center; justify-content: space-between;
+      border-top: 1px solid var(--border); padding-top: 0.75rem;
+    }
+    .post-arrow { transition: transform 0.15s, color 0.15s; }
+    .post-card:hover .post-arrow { color: var(--amber); transform: translateX(4px); }
+
+    /* EMPTY STATE */
+    .empty-state {
+      text-align: center; padding: 4rem 0;
+      font-family: var(--font-mono); color: var(--text-muted); font-size: 0.9rem;
+    }
+    .empty-state p { max-width: 100%; }
+
+    /* LOADING */
+    .loading {
+      text-align: center; padding: 3rem 0;
+      font-family: var(--font-mono); font-size: 0.85rem; color: var(--text-muted);
+    }
+    .loading::after { content: '...'; animation: blink 1s step-end infinite; }
+
+    /* FOOTER */
+    footer { border-top: 1px solid var(--border); padding: 2rem 0; margin-top: 5rem; position: relative; z-index: 1; }
+    .footer-inner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
+    .footer-logo { font-family: var(--font-display); font-size: 1.4rem; color: var(--text-muted); text-decoration: none; }
+    .footer-copy { font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-muted); width: 100%; text-align: center; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+
+    @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0; } }
+    @keyframes fadeSlideUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+    .page-header { animation: fadeSlideUp 0.4s ease both; }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <nav aria-label="Main navigation">
+    <div class="container">
+      <div class="nav-inner">
+        <a href="index.html" class="nav-logo" aria-label="SoundByter — home">SoundByter</a>
+        <ul class="nav-links" role="list">
+          <li><a href="index.html#tools">Tools</a></li>
+          <li><a href="blog.html" aria-current="page">Blog</a></li>
+          <li><a href="index.html#about">About</a></li>
+          <li><a href="index.html#accessibility">Accessibility</a></li>
+          <li><a href="https://buymeacoffee.com/soundbyter" aria-hidden="true" tabindex="-1">☕ Support</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <main id="main-content">
+    <div class="container">
+
+      <header class="page-header">
+        <p class="page-pre" aria-hidden="true"><span class="prompt">~/soundbyter/blog $</span> ls -t</p>
+        <h1>Devlog</h1>
+        <p class="intro">Writing about accessibility, tooling, and building things the right way.</p>
+      </header>
+
+      <div class="filter-bar" role="group" aria-label="Filter posts by tag">
+        <button class="filter-btn active" data-tag="all">All</button>
+      </div>
+
+      <div id="post-list" role="list" aria-live="polite" aria-label="Blog posts">
+        <div class="loading" aria-label="Loading posts">Loading</div>
+      </div>
+
+    </div>
+  </main>
+
+  <footer>
+    <div class="container">
+      <div class="footer-inner">
+        <a href="index.html" class="footer-logo" aria-label="SoundByter — back to home">SoundByter_</a>
+      </div>
+      <p class="footer-copy">&copy; <span id="footer-year"></span> SoundByter — Built with accessibility in mind &amp; dark mode always on.</p>
+    </div>
+  </footer>
+
+  <script>
+    document.getElementById('footer-year').textContent = new Date().getFullYear();
+
+    // ── Frontmatter parser ───────────────────────────────────────
+    function parseFrontmatter(raw) {
+      const match = raw.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+      if (!match) return { meta: {}, body: raw };
+      const meta = {};
+      match[1].split('\n').forEach(line => {
+        const colon = line.indexOf(':');
+        if (colon === -1) return;
+        const key = line.slice(0, colon).trim();
+        const val = line.slice(colon + 1).trim().replace(/^["']|["']$/g, '');
+        meta[key] = val;
+      });
+      return { meta, body: raw.slice(match[0].length).trim() };
+    }
+
+    // ── Load manifest then fetch each post's frontmatter ────────
+    async function loadPosts() {
+      const listEl = document.getElementById('post-list');
+      try {
+        const manifestRes = await fetch('blogs/manifest.txt');
+        if (!manifestRes.ok) throw new Error('No manifest found');
+        const manifest = await manifestRes.text();
+        const files = manifest.split('\n').map(f => f.trim()).filter(Boolean);
+
+        if (files.length === 0) {
+          listEl.innerHTML = '<div class="empty-state"><p>No posts yet. Check back soon.</p></div>';
+          return;
+        }
+
+        // Fetch frontmatter from each file in parallel
+        const posts = await Promise.all(files.map(async filename => {
+          try {
+            const res = await fetch(`blogs/${filename}`);
+            if (!res.ok) return null;
+            // Only read first 500 chars — enough for frontmatter, avoids loading full post
+            const reader = res.body.getReader();
+            const { value } = await reader.read();
+            reader.cancel();
+            const chunk = new TextDecoder().decode(value).slice(0, 800);
+            const { meta } = parseFrontmatter(chunk);
+            return { filename, ...meta };
+          } catch { return null; }
+        }));
+
+        // Filter nulls, sort newest first
+        const valid = posts
+          .filter(Boolean)
+          .filter(p => p.title)
+          .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        if (valid.length === 0) {
+          listEl.innerHTML = '<div class="empty-state"><p>No posts yet. Check back soon.</p></div>';
+          return;
+        }
+
+        // Build tag filter buttons
+        const tags = [...new Set(valid.map(p => p.tag).filter(Boolean))];
+        const filterBar = document.querySelector('.filter-bar');
+        tags.forEach(tag => {
+          const btn = document.createElement('button');
+          btn.className = 'filter-btn';
+          btn.dataset.tag = tag;
+          btn.textContent = tag;
+          filterBar.appendChild(btn);
+        });
+
+        // Render posts
+        renderPosts(valid, 'all', listEl);
+
+        // Filter interactions
+        filterBar.addEventListener('click', e => {
+          if (!e.target.matches('.filter-btn')) return;
+          document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+          e.target.classList.add('active');
+          renderPosts(valid, e.target.dataset.tag, listEl);
+        });
+
+      } catch (err) {
+        listEl.innerHTML = '<div class="empty-state"><p>Could not load posts. Try refreshing.</p></div>';
+        console.error(err);
+      }
+    }
+
+    function renderPosts(posts, tag, listEl) {
+      const filtered = tag === 'all' ? posts : posts.filter(p => p.tag === tag);
+      if (filtered.length === 0) {
+        listEl.innerHTML = '<div class="empty-state"><p>No posts with that tag yet.</p></div>';
+        return;
+      }
+      listEl.innerHTML = filtered.map(post => {
+        const slug = post.filename.replace('.md', '');
+        const date = post.date ? new Date(post.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+        const readTime = post.readtime ? `${post.readtime} min read` : '';
+        return `
+          <article role="listitem">
+            <a href="post.html?post=${encodeURIComponent(post.filename)}"
+               class="post-card"
+               aria-label="Read post: ${escHtml(post.title)}">
+              <div class="post-card-meta">
+                ${date ? `<span class="post-date">${date}</span>` : ''}
+                ${post.tag ? `<span class="post-tag">${escHtml(post.tag)}</span>` : ''}
+              </div>
+              <p class="post-title" aria-hidden="true">${escHtml(post.title)}</p>
+              ${post.excerpt ? `<p class="post-excerpt">${escHtml(post.excerpt)}</p>` : ''}
+              <div class="post-card-footer">
+                <span>${readTime}</span>
+                <span class="post-arrow" aria-hidden="true">→</span>
+              </div>
+            </a>
+          </article>`;
+      }).join('');
+    }
+
+    function escHtml(str) {
+      return String(str)
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    loadPosts();
+  </script>
+
+</body>
+</html>
