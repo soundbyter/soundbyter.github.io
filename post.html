@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Loading... — SoundByter</title>
+  <title>SoundByter — Devlog</title>
   <meta name="description" content="" />
 
   <style>
@@ -15,6 +15,22 @@
     }
     .skip-link:focus { top: 0; }
   </style>
+
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://soundbyter.github.io/blog.html" />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://soundbyter.github.io/blog.html" />
+  <meta property="og:title" content="SoundByter — Devlog" />
+  <meta property="og:description" content="Writing about accessibility, tooling, and building things the right way." />
+  <meta property="og:image" content="https://soundbyter.github.io/apple-touch-icon.png" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="SoundByter — Devlog" />
+  <meta name="twitter:description" content="Writing about accessibility, tooling, and building things the right way." />
+  <meta name="twitter:image" content="https://soundbyter.github.io/apple-touch-icon.png" />
 
   <link rel="icon" type="image/gif" href="favicon-animated.gif" />
   <link rel="icon" type="image/x-icon" href="favicon.ico" />
@@ -347,9 +363,11 @@
 
         // Update page title and meta description
         document.title = `${meta.title} — SoundByter`;
-        if (meta.excerpt) {
-          document.querySelector('meta[name="description"]').setAttribute('content', meta.excerpt);
-        }
+        document.querySelector('meta[name="description"]').setAttribute('content', meta.excerpt || meta.title);
+        document.querySelector('meta[property="og:title"]').setAttribute('content', `${meta.title} — SoundByter`);
+        document.querySelector('meta[property="og:description"]').setAttribute('content', meta.excerpt || meta.title);
+        document.querySelector('meta[name="twitter:title"]').setAttribute('content', `${meta.title} — SoundByter`);
+        document.querySelector('meta[name="twitter:description"]').setAttribute('content', meta.excerpt || meta.title);
 
         // Format date
         const dateStr = meta.date
